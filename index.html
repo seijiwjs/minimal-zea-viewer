@@ -140,6 +140,7 @@
         Color,
         EulerAngles,
         Xfo,
+        Quat,
         ObjAsset,
         Scene,
         GLRenderer,
@@ -148,7 +149,7 @@
         GeomItem,
         MeshProxy,
         LinesProxy,
-        Vec3, Sphere, Material,  GLBoundingBoxPass
+        Vec3, Sphere, Material,  GLBoundingBoxPass, Cylinder, Cross
       } = zeaEngine;
       const { CADAsset } = zeaCad;
 
@@ -170,52 +171,110 @@
       envMap.load("./data/StudioG.zenv");
       scene.setEnvMap(envMap);
 
-      // const asset = new CADAsset();
-      // const zcad = urlParams.has("zcad")
-      //   ? urlParams.get("zcad")
-      //   : "./data/HC_SRO4.zcad";
-      // if (zcad) {
-      //   asset.load(zcad).then(() => {
-      //     let count = 0;
-      //     asset.traverse((item) => {
-      //       if (item instanceof GeomItem) {
-      //         count++;
-      //       }
-      //     });
-      //     console.log("Done GeomItems:", count);
-      //     asset.getGeometryLibrary().on("loaded", () => {
-      //       let triangles = 0;
-      //       let lines = 0;
-      //       asset.traverse((item) => {
-      //         if (item instanceof GeomItem) {
-      //           const geom = item.getParameter("Geometry").getValue();
-      //           if (geom instanceof LinesProxy) {
-      //             lines += geom.__buffers.indices.length / 2;
-      //           }
-      //           if (geom instanceof MeshProxy) {
-      //             triangles += geom.__buffers.indices.length / 3;
-      //           }
-      //         }
-      //       });
-      //       console.log("lines: ", lines, " triangles: ", triangles);
-      //     });
-      //     renderer.frameAll();
-      //   });
-      // }
-
       // scene.getRoot().addChild(asset);
+      const standardMaterial = new Material('surfaces', 'SimpleSurfaceShader')
+      standardMaterial.getParameter('BaseColor').setValue(new Color(182 / 255, 182 / 255, 182 / 255))
+      // create another mat for pts
 
-      // add 2 sphere, 1 cylinder
+      const sphere = new Sphere(0.5, 16, 10) // create one sphere and share it -- reuse geo
+      const cross = new Cross(0.5) // create one sphere and share it -- reuse geo
 
-      // set Xfos
+      function createSphereAt(pos){
+        
+        const geomItem = new GeomItem('Sphere', sphere, standardMaterial)
+        //scene.getRoot().addChild(geomItem)
 
-      // align with vector algebra
 
+        // const pos = new Vec3(0,0,5);
+        const xfo = new Xfo(pos);
+        xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
+        geomItem.getParameter("GlobalXfo").setValue(xfo);
+        return geomItem
+      }
+      function createCrossAt(pos){
+        
+        const geomItem = new GeomItem('Cross', cross, standardMaterial)
+        scene.getRoot().addChild(geomItem)
+
+
+        // const pos = new Vec3(0,0,5);
+        const xfo = new Xfo(pos);
+        xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
+        geomItem.getParameter("GlobalXfo").setValue(xfo);
+        return geomItem
+      }
+      function createCylinderAt(pos){
+        const cylinder = new Cylinder(1, 8, 12)
+        const geomItem = new GeomItem('Cylinder', cylinder, standardMaterial)
+        scene.getRoot().addChild(geomItem)
+
+        const xfo = new Xfo(pos);
+        xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
+        geomItem.getParameter("GlobalXfo").setValue(xfo);
+        return geomItem
+      }
+
+      function setCylinder(s1, s2){
+        // TODO: two pos -> orientation + pos
+      }
+
+      // create geometry
+      let c = createCylinderAt(new Vec3(0,0,0))
+
+      let s1 = createSphereAt(new Vec3(0,0.5,5)) // get globalXfo.tr
+      let s2 = createSphereAt(new Vec3(0,0.5,-5))
+      let s3= createSphereAt(new Vec3(0,0.5,-5))
+
+      c.addChild(s1, false)
+      c.addChild(s2, false)
+      c.addChild(s3, false)
+
+      const tr1 = s1.getParameter("GlobalXfo").getValue().tr
+      const tr2 = s2.getParameter("GlobalXfo").getValue().tr
+      const tr3 = s2.getParameter("GlobalXfo").getValue().tr
+
+      // calc coord frame from spheres.
       
 
-      const xfo = new Xfo();
-      xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
-      // asset.getParameter("GlobalXfo").setValue(xfo);
+      // calc coord frame from markers
+      // calc differnce -> inverseOfXfo
+
+      // invertCrossXfo * sphereXfo
+
+      // vector algebra
+      const pt1 =  new Vec3(5,0,4);
+      const pt2 =  new Vec3(-5,0,-1);
+      const pt3 = new Vec3(0,0,5);
+
+      createCrossAt(pt1);
+      createCrossAt(pt2);
+      createCrossAt(pt3);
+      const dir = pt2.subtract(pt1);
+
+      const pt12 = pt2.subtract(pt1);
+      const pt13 = pt3.subtract(pt1);
+      const triNormal = pt13.cross(pt12)
+      const normal = pt12.cross(triNormal);
+
+      // set cylinder
+      const quat = new Quat();
+      quat.setFromDirectionAndUpvector(dir, normal);
+      // const euler = new EulerAngles(0,0,0, 'XYZ');
+      // quat.setFromEulerAngles(euler);
+
+      const pos = new Vec3(0,0,0);
+      pos.addInPlace(pt1)
+      pos.addInPlace(pt2)
+      pos.scaleInPlace(1/2)
+
+      const scale = new Vec3(1,1,1)
+      const xfo = new Xfo(pos, quat, scale );
+      c.getParameter("GlobalXfo").setValue(xfo);
+    
+
+
+
+
 
       // Setup FPS Display
       const fpsElement = document.getElementById("fps");
