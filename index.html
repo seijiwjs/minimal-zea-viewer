@@ -178,52 +178,44 @@
 
       const sphere = new Sphere(0.5, 16, 10) // create one sphere and share it -- reuse geo
       const cross = new Cross(0.5) // create one sphere and share it -- reuse geo
+      const cylinder = new Cylinder(1, 8, 12)
 
-      function createSphereAt(pos){
-        
-        const geomItem = new GeomItem('Sphere', sphere, standardMaterial)
-        //scene.getRoot().addChild(geomItem)
-
-
-        // const pos = new Vec3(0,0,5);
+      function createGeo(pos, geom, geomName, add){
+        const geomItem = new GeomItem(geomName, geom, standardMaterial)
         const xfo = new Xfo(pos);
         xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
         geomItem.getParameter("GlobalXfo").setValue(xfo);
-        return geomItem
-      }
-      function createCrossAt(pos){
-        
-        const geomItem = new GeomItem('Cross', cross, standardMaterial)
-        scene.getRoot().addChild(geomItem)
-
-
-        // const pos = new Vec3(0,0,5);
-        const xfo = new Xfo(pos);
-        xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
-        geomItem.getParameter("GlobalXfo").setValue(xfo);
-        return geomItem
-      }
-      function createCylinderAt(pos){
-        const cylinder = new Cylinder(1, 8, 12)
-        const geomItem = new GeomItem('Cylinder', cylinder, standardMaterial)
-        scene.getRoot().addChild(geomItem)
-
-        const xfo = new Xfo(pos);
-        xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
-        geomItem.getParameter("GlobalXfo").setValue(xfo);
+        if(add) scene.getRoot().addChild(geomItem)
         return geomItem
       }
 
-      function setCylinder(s1, s2){
-        // TODO: two pos -> orientation + pos
+      function f32ArrayToStr(arr){
+        let str = ''
+        for (let x of arr){
+          str+= Math.round(x*100)/100.0 + ' '
+        }
+        return str
       }
+      function printCoord(v1,v2,v3){
+        console.log("Coordinate frame:")
+        console.log('X: ' + f32ArrayToStr(v1.__data), '\nY: ' + f32ArrayToStr(v2.__data) + '\nZ: ' + f32ArrayToStr(v3.__data))
+      }
+
+      function computeCoord(pt1, pt2, pt3){
+        const pt12 = pt2.subtract(pt1);
+        const pt13 = pt3.subtract(pt1);
+        const triNormal = pt13.cross(pt12)
+        const normal = pt12.cross(triNormal);
+        return [pt12, pt13, normal]
+      }
+
 
       // create geometry
-      let c = createCylinderAt(new Vec3(0,0,0))
+      let c = createGeo(new Vec3(0,0,0), cylinder, 'Cylinder', true)
 
-      let s1 = createSphereAt(new Vec3(0,0.5,5)) // get globalXfo.tr
-      let s2 = createSphereAt(new Vec3(0,0.5,-5))
-      let s3= createSphereAt(new Vec3(0,0.5,-5))
+      let s1 = createGeo(new Vec3(0,0.5,5), sphere, 'Sphere', false) // get globalXfo.tr
+      let s2 = createGeo(new Vec3(0,0.5,-5), sphere, 'Sphere', false)
+      let s3 = createGeo(new Vec3(0,0.5,-5), sphere, 'Sphere', false)
 
       c.addChild(s1, false)
       c.addChild(s2, false)
@@ -234,47 +226,50 @@
       const tr3 = s2.getParameter("GlobalXfo").getValue().tr
 
       // calc coord frame from spheres.
-      
+      const dirSpheres = tr2.subtract(tr1);
+      const [trX, trY, trZ] = computeCoord(tr1, tr2, tr3)
+      printCoord(trX, trY, trZ);
 
-      // calc coord frame from markers
-      // calc differnce -> inverseOfXfo
 
-      // invertCrossXfo * sphereXfo
+      // markers
+      const pt1 =  new Vec3(-7,0,4);
+      const pt2 =  new Vec3(-3,0,-1);
+      const pt3 =  new Vec3(0,0,5);
 
-      // vector algebra
-      const pt1 =  new Vec3(5,0,4);
-      const pt2 =  new Vec3(-5,0,-1);
-      const pt3 = new Vec3(0,0,5);
+      const marker1 = createGeo(pt1,cross, 'Cross', true);
+      const marker2 = createGeo(pt2,cross, 'Cross', true);
+      const marker3 = createGeo(pt3,cross, 'Cross', true);
 
-      createCrossAt(pt1);
-      createCrossAt(pt2);
-      createCrossAt(pt3);
-      const dir = pt2.subtract(pt1);
 
-      const pt12 = pt2.subtract(pt1);
-      const pt13 = pt3.subtract(pt1);
-      const triNormal = pt13.cross(pt12)
-      const normal = pt12.cross(triNormal);
+      //calc coords from markers
+      const [x,y,z] = computeCoord(pt1, pt2,pt3)
+      printCoord(x, y, z);
 
       // set cylinder
+      const dir = pt2.subtract(pt1);
       const quat = new Quat();
-      quat.setFromDirectionAndUpvector(dir, normal);
-      // const euler = new EulerAngles(0,0,0, 'XYZ');
-      // quat.setFromEulerAngles(euler);
+      quat.setFromDirectionAndUpvector(dir, z);
 
+      // position for cylinder
       const pos = new Vec3(0,0,0);
       pos.addInPlace(pt1)
       pos.addInPlace(pt2)
-      pos.scaleInPlace(1/2)
+      pos.scaleInPlace(0.5)
 
       const scale = new Vec3(1,1,1)
       const xfo = new Xfo(pos, quat, scale );
       c.getParameter("GlobalXfo").setValue(xfo);
-    
+
+      // calc differnce -> inverseOfXfo
+
+      // invertCrossXfo * sphereXfo
 
 
 
 
+      /*
+        Exercise end
+      */
 
       // Setup FPS Display
       const fpsElement = document.getElementById("fps");
