@@ -211,10 +211,46 @@
       return [pt12, pt13, normal]
     }
 
+    // alt = set local after
+    function setLocalXfos(cy){
+      const sphere1 = cy.getChildByName('Sphere1')
+      const sphere2 = cy.getChildByName('Sphere2')
+      const sphere3 = cy.getChildByName('Sphere3')
+      
+      sphere1.getParameter("LocalXfo").setValue(s1_xfo)
+      sphere2.getParameter("LocalXfo").setValue(s2_xfo)
+      sphere3.getParameter("LocalXfo").setValue(s3_xfo)
+      const s1_xfo = new Xfo(new Vec3(0,5,0.5))
+      const s2_xfo = new Xfo(new Vec3(5,0,0))
+      const s3_xfo = new Xfo(new Vec3(0,-5,0.5))
+    }
+
+    function add_markers(pt1, pt2, pt3){
+      const marker1 = createGeo(pt1, cross, 'Cross1');
+      const marker2 = createGeo(pt2, cross, 'Cross2');
+      const marker3 = createGeo(pt3, cross, 'Cross3');
+
+      let s1 = createGeo(pt1, marker_geo, 'm1', rmat) 
+      let s2 = createGeo(pt2, marker_geo, 'm2', bmat)
+      let s3 = createGeo(pt3, marker_geo, 'm3', gmat)
+
+      marker1.addChild(s1)
+      marker1.addChild(s2)
+      marker1.addChild(s3)
 
 
-    const sphere = new Sphere(0.5, 16, 10) // create one sphere and share it -- reuse geo
-    const cross = new Cross(0.5) // create one sphere and share it -- reuse geo
+      scene.getRoot().addChild(marker1)
+      scene.getRoot().addChild(marker2)
+      scene.getRoot().addChild(marker3)
+    }
+
+    /*
+      EXERCISE
+    */
+
+    const sphere = new Sphere(0.25, 16, 10) // create one sphere and share it -- reuse geo
+    const marker_geo = new Sphere(0.1, 8, 5) 
+    const cross = new Cross(0.75)
     const cylinder = new Cylinder(0.5, 8, 12)
 
     function computeXfo(pt1, pt2, pt3){
@@ -238,22 +274,15 @@
   
 
     // return model, like black box
-    function createModel(pt1, pt2 ,pt3){
+    function createModel(pos1, pos2 ,pos3){
       // Cylinder
       let c = createGeo(new Vec3(0,0,0), cylinder, 'Cylinder') 
       scene.getRoot().addChild(c)
 
       // Spheres
-      // const spos1 = new Vec3(0,0.5,5)
-      // const spos2 = new Vec3(0,0.5,-5)
-      // const spos3 = new Vec3(0,0.5,-5)
-      const spos1 = new Vec3(0,0,0)
-      const spos2 = new Vec3(0,0,0)
-      const spos3 = new Vec3(0,0,0)
-
-      let s1 = createGeo(spos1, sphere, 'Sphere1', rmat) 
-      let s2 = createGeo(spos2, sphere, 'Sphere2', bmat)
-      let s3 = createGeo(spos3, sphere, 'Sphere3', gmat)
+      let s1 = createGeo(pos1, sphere, 'Sphere1', rmat) 
+      let s2 = createGeo(pos2, sphere, 'Sphere2', bmat)
+      let s3 = createGeo(pos3, sphere, 'Sphere3', gmat)
 
       c.addChild(s1, false)
       c.addChild(s2, false)
@@ -262,62 +291,41 @@
       return c
     }
 
+    function orient_cylinder(cy){
+      // getting sphere transforms from cylinder parent
+      const sphere1 = cy.getChildByName('Sphere1')
+      const sphere2 = cy.getChildByName('Sphere2')
+      const sphere3 = cy.getChildByName('Sphere3')
+      const tr1 = sphere1.getParameter("GlobalXfo").getValue().tr
+      const tr2 = sphere2.getParameter("GlobalXfo").getValue().tr
+      const tr3 = sphere2.getParameter("GlobalXfo").getValue().tr 
+
+      // compute deltas
+      const xfo_model = computeXfo(tr1, tr2, tr3)
+      const xfo_markers = computeXfo(pt1, pt2, pt3)
+      const xfo_delta = xfo_model.inverse().multiply(xfo_markers)
+      const xfo = xfo_model.multiply(xfo_delta)
+
+      // apply to model
+      cy.getParameter("GlobalXfo").setValue(xfo);
+    }
 
     // markers
     const pt1 =  new Vec3(-5,0,4);
     const pt2 =  new Vec3(4,0,-1);
     const pt3 =  new Vec3(0,0,5);
 
-    const marker1 = createGeo(pt1, cross, 'Cross1');
-    const marker2 = createGeo(pt2, cross, 'Cross2');
-    const marker3 = createGeo(pt3, cross, 'Cross3');
+    add_markers(pt1,pt2,pt3)
 
-    scene.getRoot().addChild(marker1)
-    scene.getRoot().addChild(marker2)
-    scene.getRoot().addChild(marker3)
+    // sphere postions - local offsets
+    const spos1 = new Vec3(0,0.5,5)
+    const spos2 = new Vec3(5,0.5,0)
+    const spos3 = new Vec3(0,0.5,-5)
 
+    // create model
+    const cy = createModel(spos1, spos2, spos3)
 
-    const cy = createModel()
-
-
-    // getting spheres from cylinder parent
-    const sphere1 = cy.getChildByName('Sphere1')
-    const sphere2 = cy.getChildByName('Sphere2')
-    const sphere3 = cy.getChildByName('Sphere3')
-
-    // alt = set local after
-    sphere1.getParameter("LocalXfo").setValue(s1_xfo)
-    sphere2.getParameter("LocalXfo").setValue(s2_xfo)
-    sphere3.getParameter("LocalXfo").setValue(s3_xfo)
-    const s1_xfo = new Xfo(new Vec3(0,5,0.5))
-    const s2_xfo = new Xfo(new Vec3(5,0,0))
-    const s3_xfo = new Xfo(new Vec3(0,-5,0.5))
-    
-
-    const tr1 = sphere1.getParameter("GlobalXfo").getValue().tr
-    const tr2 = sphere2.getParameter("GlobalXfo").getValue().tr
-    const tr3 = sphere2.getParameter("GlobalXfo").getValue().tr
-
-
-    // compute coord for spheres, markers
-    // sphere-markers = difference 
-    // apply to model 
-
-
-    // xfo_model 
-    // xfo_markers
-    // xfo_model.inverse().multiply(xfo_markers) -> delta
-    // apply to xfo_model.multiply(xfo_deltas)
-
-    const xfo_model = computeXfo(tr1, tr2, tr3)
-    const xfo_markers = computeXfo(pt1, pt2, pt3)
-
-    const xfo_delta = xfo_model.inverse().multiply(xfo_markers)
-    xfo_model.multiply(xfo_deltas)
-
-    cy.getParameter("GlobalXfo").setValue(xfo_model);
-
-
+    orient_cylinder(cy)
 
 
     // TODO: review
@@ -326,19 +334,18 @@
 
 
 
-  {
-    // //calc coords from markers
-    const [x,y,z] = computeCoord(pt1, pt2,pt3)
-    printCoord(x, y, z);
-    
-    const tr1 = sphere1.getParameter("GlobalXfo").getValue().tr
-    const tr2 = sphere2.getParameter("GlobalXfo").getValue().tr
-    const tr3 = sphere2.getParameter("GlobalXfo").getValue().tr
 
-    // calc coord frame from spheres.
-    const [trX, trY, trZ] = computeCoord(tr1, tr2, tr3)
-    printCoord(trX, trY, trZ);
-  }
+    {   
+      // calc coords from markers
+      // const [x,y,z] = computeCoord(pt1, pt2,pt3)
+      // printCoord(x, y, z);
+
+      //extra:
+      // const [trX, trY, trZ] = computeCoord(tr1, tr2, tr3)
+      // printCoord(trX, trY, trZ);
+    }
+
+
     /*
       Exercise end
     */
