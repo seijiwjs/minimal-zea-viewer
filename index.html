@@ -312,21 +312,19 @@
 
     // markers
     const pt1 =  new Vec3(-5,0,4);
-    const pt2 =  new Vec3(4,0,-1);
+    const pt2 =  new Vec3(5,0,-1);
     const pt3 =  new Vec3(0,0,5);
 
     add_markers(pt1,pt2,pt3)
 
     // sphere postions - local offsets
-    const spos1 = new Vec3(0,0.5,5)
-    const spos2 = new Vec3(5,0.5,0)
-    const spos3 = new Vec3(0,0.5,-5)
+    const spos1 = new Vec3(0,0.5,-5)
+    const spos2 = new Vec3(0,0.5,5)
+    const spos3 = new Vec3(0,5,0)
 
     // create model
     const cy = createModel(spos1, spos2, spos3)
-
     orient_cylinder(cy)
-
 
     // TODO: review
     // eventually load model. PCB. find position of holes. 2 markers + up vector
