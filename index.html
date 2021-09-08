@@ -235,8 +235,8 @@
       let s3 = createGeo(pt3, marker_geo, 'm3', gmat)
 
       marker1.addChild(s1)
-      marker1.addChild(s2)
-      marker1.addChild(s3)
+      marker2.addChild(s2)
+      marker3.addChild(s3)
 
 
       scene.getRoot().addChild(marker1)
@@ -344,15 +344,7 @@
     }
 
 
-    /*
-      Exercise end
-    */
-
-      // Setup FPS Display
-      const fpsElement = document.getElementById("fps");
-      fpsElement.renderer = renderer;
-
-      let highlightedItem;
+    let highlightedItem;
       renderer.getViewport().on("pointerOverGeom", (event) => {
         highlightedItem = event.intersectionData.geomItem;
         highlightedItem.addHighlight(
@@ -365,12 +357,32 @@
         highlightedItem.removeHighlight("pointerOverGeom", true);
         highlightedItem = null;
       });
+
+      let selected_obj = null
       renderer.getViewport().on("pointerDown", (event) => {
         if (event.intersectionData) {
           const { geomItem } = event.intersectionData;
-          console.log(geomItem.getPath());
+          selected_obj = geomItem
+          console.log("selected: ", selected_obj.__name)
+
+          const tr = selected_obj.__globalXfoParam.getValue().tr.__data
+          console.log("xfo: ",  tr)
+          selected_obj.__globalXfoParam.getValue().tr.__data = 
         }
       });
+      renderer.getViewport().on("pointerMove", (event) => {
+          // console.log(selected_obj)
+      });
+      renderer.getViewport().on("pointerUp", (event) => {
+        selected_obj = null
+
+      });
+    /*
+      Exercise end
+    */
+      // Setup FPS Display
+      const fpsElement = document.getElementById("fps");
+      fpsElement.renderer = renderer;
 
       resourceLoader.on("progressIncremented", (event) => {
         const pct = document.getElementById("progress");
