@@ -171,40 +171,9 @@
     envMap.load("./data/StudioG.zenv");
     scene.setEnvMap(envMap);
 
-    const asset = new CADAsset();
-      const zcad = urlParams.has("zcad")
-        ? urlParams.get("zcad")
-        : "./data/HC_SRO4.zcad";
-      if (zcad) {
-        asset.load(zcad).then(() => {
-          let count = 0;
-          asset.traverse((item) => {
-            if (item instanceof GeomItem) {
-              count++;
-            }
-          });
-          console.log("Done GeomItems:", count);
-          asset.getGeometryLibrary().on("loaded", () => {
-            let triangles = 0;
-            let lines = 0;
-            asset.traverse((item) => {
-              if (item instanceof GeomItem) {
-                const geom = item.getParameter("Geometry").getValue();
-                if (geom instanceof LinesProxy) {
-                  lines += geom.__buffers.indices.length / 2;
-                }
-                if (geom instanceof MeshProxy) {
-                  triangles += geom.__buffers.indices.length / 3;
-                }
-              }
-            });
-            console.log("lines: ", lines, " triangles: ", triangles);
-          });
-          renderer.frameAll();
-        });
-      }
 
-    scene.getRoot().addChild(asset);
+
+    
 
     const default_material = new Material('surfaces', 'SimpleSurfaceShader')
     default_material.getParameter('BaseColor').setValue(new Color(182 / 255, 182 / 255, 182 / 255))
@@ -307,8 +276,6 @@
 
       return xfo
     }
-  
-
     // return model, like black box
     function createModel(pos1, pos2 ,pos3){
       // Cylinder
@@ -371,23 +338,70 @@
       orient_cylinder(cy)
     }
 
+    
     //run_exercise()
 
+    /*
+      PCB EXERCISE
+    */
+    function load_asset(){
+      const asset = new CADAsset();
+      const zcad = urlParams.has("zcad")
+        ? urlParams.get("zcad")
+        : "./data/HC_SRO4.zcad";
+      if (zcad) {
+        asset.load(zcad).then(() => {
+          let count = 0;
+          asset.traverse((item) => {
+            if (item instanceof GeomItem) {
+              count++;
+            }
+          });
+          console.log("Done GeomItems:", count);
+          asset.getGeometryLibrary().on("loaded", () => {
+            let triangles = 0;
+            let lines = 0;
+            asset.traverse((item) => {
+              if (item instanceof GeomItem) {
+                const geom = item.getParameter("Geometry").getValue();
+                if (geom instanceof LinesProxy) {
+                  lines += geom.__buffers.indices.length / 2;
+                }
+                if (geom instanceof MeshProxy) {
+                  triangles += geom.__buffers.indices.length / 3;
+                }
+              }
+            });
+            console.log("lines: ", lines, " triangles: ", triangles);
+          });
+          renderer.frameAll();
+          pcb_exercise(asset)
+        });
+      }
+      scene.getRoot().addChild(asset);
+      
+    }
 
-    
+    function pcb_exercise(asset){
+      console.log(asset.getChildNames() )
 
+      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Edges']
+      const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Edges']
+      const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Edges']
+      const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Edges']
 
-    {   
-      // calc coords from markers
-      // const [x,y,z] = computeCoord(pt1, pt2,pt3)
-      // printCoord(x, y, z);
-
-      //extra:
-      // const [trX, trY, trZ] = computeCoord(tr1, tr2, tr3)
-      // printCoord(trX, trY, trZ);
+      console.log(asset.resolvePath(body1).__localXfoParam.getValue().tr)
     }
 
 
+    load_asset()
+ 
+
+
+    
+    /*
+      UI
+    */
     let highlightedItem;
       renderer.getViewport().on("pointerOverGeom", (event) => {
         highlightedItem = event.intersectionData.geomItem;
@@ -408,7 +422,7 @@
           const { geomItem } = event.intersectionData;
           selected_obj = geomItem
           console.log("selected: ", selected_obj.__name)
-
+          console.log(geomItem.getPath());
           // const tr = selected_obj.__globalXfoParam.getValue().tr.__data
           // console.log("xfo: ",  tr)
           // selected_obj.__globalXfoParam.getValue().tr.__data = tr.add(new Vec3(1,0,1))
