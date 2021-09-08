@@ -251,6 +251,7 @@
     const sphere = new Sphere(0.25, 16, 10) // create one sphere and share it -- reuse geo
     const marker_geo = new Sphere(0.1, 8, 5) 
     const cross = new Cross(0.75)
+    const origin = new Cross(14)
     const cylinder = new Cylinder(0.5, 8, 12)
 
     function computeXfo(pt1, pt2, pt3){
@@ -302,25 +303,32 @@
 
       // compute deltas
       const xfo_model = computeXfo(tr1, tr2, tr3)
+      const root_xfo = cy.getParameter("GlobalXfo").getValue();
+      const model_root_xfo_delta = xfo_model.inverse().multiply(root_xfo)
+
       const xfo_markers = computeXfo(pt1, pt2, pt3)
       const xfo_delta = xfo_model.inverse().multiply(xfo_markers)
-      const xfo = xfo_model.multiply(xfo_delta)
 
+      const xfo = xfo_model.multiply(xfo_delta)
+      const final = xfo.multiply(model_root_xfo_delta)
+
+      // let o = createGeo(xfo_model.tr, origin, 'origin')
+      // scene.getRoot().addChild(o)
       // apply to model
-      cy.getParameter("GlobalXfo").setValue(xfo);
+      cy.getParameter("GlobalXfo").setValue(final);
     }
 
     // markers
     const pt1 =  new Vec3(-5,0,4);
     const pt2 =  new Vec3(5,0,-1);
-    const pt3 =  new Vec3(0,0,5);
+    const pt3 =  new Vec3(0,2,5);
 
     add_markers(pt1,pt2,pt3)
 
     // sphere postions - local offsets
-    const spos1 = new Vec3(0,0.5,-5)
+    const spos1 = new Vec3(0,-2,-5)
     const spos2 = new Vec3(0,0.5,5)
-    const spos3 = new Vec3(0,5,0)
+    const spos3 = new Vec3(0,6,0)
 
     // create model
     const cy = createModel(spos1, spos2, spos3)
@@ -365,9 +373,9 @@
           selected_obj = geomItem
           console.log("selected: ", selected_obj.__name)
 
-          const tr = selected_obj.__globalXfoParam.getValue().tr.__data
-          console.log("xfo: ",  tr)
-          selected_obj.__globalXfoParam.getValue().tr.__data = 
+          // const tr = selected_obj.__globalXfoParam.getValue().tr.__data
+          // console.log("xfo: ",  tr)
+          // selected_obj.__globalXfoParam.getValue().tr.__data = tr.add(new Vec3(1,0,1))
         }
       });
       renderer.getViewport().on("pointerMove", (event) => {
