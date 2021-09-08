@@ -171,24 +171,24 @@
       envMap.load("./data/StudioG.zenv");
       scene.setEnvMap(envMap);
 
-      // scene.getRoot().addChild(asset);
       const standardMaterial = new Material('surfaces', 'SimpleSurfaceShader')
       standardMaterial.getParameter('BaseColor').setValue(new Color(182 / 255, 182 / 255, 182 / 255))
-      // create another mat for pts
+      const standardMaterial2 = new Material('surfaces', 'SimpleSurfaceShader')
+      standardMaterial2.getParameter('BaseColor').setValue(new Color(200 / 255, 100 / 255, 100 / 255))
+
 
       const sphere = new Sphere(0.5, 16, 10) // create one sphere and share it -- reuse geo
       const cross = new Cross(0.5) // create one sphere and share it -- reuse geo
       const cylinder = new Cylinder(1, 8, 12)
 
-      function createGeo(pos, geom, geomName, add){
-        const geomItem = new GeomItem(geomName, geom, standardMaterial)
-        const xfo = new Xfo(pos);
+      function createGeo(pos, geom, geomName, mat){
+  
+        const geomItem = new GeomItem(geomName, geom, mat)
+        const xfo = new Xfo(pos); 
         xfo.ori.setFromEulerAngles(new EulerAngles(90 * (Math.PI / 180), 0, 0));
         geomItem.getParameter("GlobalXfo").setValue(xfo);
-        if(add) scene.getRoot().addChild(geomItem)
         return geomItem
       }
-
       function f32ArrayToStr(arr){
         let str = ''
         for (let x of arr){
@@ -201,25 +201,78 @@
         console.log('X: ' + f32ArrayToStr(v1.__data), '\nY: ' + f32ArrayToStr(v2.__data) + '\nZ: ' + f32ArrayToStr(v3.__data))
       }
 
-      function computeCoord(pt1, pt2, pt3){
-        const pt12 = pt2.subtract(pt1);
-        const pt13 = pt3.subtract(pt1);
-        const triNormal = pt13.cross(pt12)
-        const normal = pt12.cross(triNormal);
-        return [pt12, pt13, normal]
-      }
 
+    function computeCoord(pt1, pt2, pt3){
+      const pt12 = pt2.subtract(pt1);
+      const pt13 = pt3.subtract(pt1);
+      const triNormal = pt13.cross(pt12)
+      const normal = pt12.cross(triNormal);
+      return [pt12, pt13, normal]
+    }
 
-      // create geometry
-      let c = createGeo(new Vec3(0,0,0), cylinder, 'Cylinder', true)
+    function computeXfo(pt1, pt2, pt3){
+      const pt12 = pt2.subtract(pt1);
+      const pt13 = pt3.subtract(pt1);
+      const triNormal = pt13.cross(pt12)
+      const normal = pt12.cross(triNormal);
 
-      let s1 = createGeo(new Vec3(0,0.5,5), sphere, 'Sphere', false) // get globalXfo.tr
-      let s2 = createGeo(new Vec3(0,0.5,-5), sphere, 'Sphere', false)
-      let s3 = createGeo(new Vec3(0,0.5,-5), sphere, 'Sphere', false)
+      const pos = new Vec3(0,0,0);
+      pos.addInPlace(pt1)
+      pos.addInPlace(pt2)
+      pos.scaleInPlace(0.5)
 
+      const xfo = new Xfo()
+      xfo.tr = pos
+      const dir = pt2.subtract(pt1);
+      xfo.ori.setFromDirectionAndUpvector(dir, normal)
+
+      return xfo
+    }
+    
+    function createModel(){
+
+      // create geometry() -- make func
+      let c = createGeo(new Vec3(0,0,0), cylinder, 'Cylinder') 
+      
+      
+      let s1 = createGeo(new Vec3(0,0.5,5), sphere, 'Sphere1', standardMaterial2) // get globalXfo.tr
+      let s2 = createGeo(new Vec3(0,0.5,-5), sphere, 'Sphere2', standardMaterial2)
+      let s3 = createGeo(new Vec3(0,0.5,-5), sphere, 'Sphere3', standardMaterial2)
+
+      // return c
+
+      // scene.addgeo(c)
       c.addChild(s1, false)
       c.addChild(s2, false)
-      c.addChild(s3, false)
+      c.addChild(s3, false) // false = keep current local offset
+
+      //get child from c -- by name or index
+
+      // alt; set local after
+    }
+
+
+
+
+      // comput coord for spheres, markers
+      // sphere-markers = difference 
+      // apply to model 
+
+      // xfo_model 
+      // xfo_markers
+      // xfo_model.inverse().multiply(xfo_markers) -> delta
+      // apply to xfo_model.multiply(xfo_deltas)
+
+      // eventually load model. PCB. find position of holes. 2 markers + up vector
+      // mount on a bracket.
+      //
+
+      // 
+      
+      /*
+      
+      */
+    createModel()
 
       const tr1 = s1.getParameter("GlobalXfo").getValue().tr
       const tr2 = s2.getParameter("GlobalXfo").getValue().tr
@@ -232,14 +285,17 @@
 
 
       // markers
-      const pt1 =  new Vec3(-7,0,4);
+      const pt1 =  new Vec3(-2,0,4);
       const pt2 =  new Vec3(-3,0,-1);
       const pt3 =  new Vec3(0,0,5);
 
-      const marker1 = createGeo(pt1,cross, 'Cross', true);
-      const marker2 = createGeo(pt2,cross, 'Cross', true);
-      const marker3 = createGeo(pt3,cross, 'Cross', true);
+      const marker1 = createGeo(pt1, cross, 'Cross', standardMaterial2);
+      const marker2 = createGeo(pt2, cross, 'Cross', standardMaterial2);
+      const marker3 = createGeo(pt3, cross, 'Cross', standardMaterial);
 
+      scene.getRoot().addChild(marker1)
+      scene.getRoot().addChild(marker2)
+      scene.getRoot().addChild(marker3)
 
       //calc coords from markers
       const [x,y,z] = computeCoord(pt1, pt2,pt3)
