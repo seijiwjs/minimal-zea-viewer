@@ -248,14 +248,23 @@
       scene.getRoot().addChild(marker3)
     }
 
+    function createGeo2(xfo, geom, geomName, mat){
+      let m = default_material
+      if(mat){
+        m = mat
+      }
+      const geomItem = new GeomItem(geomName, geom,  m)
+      geomItem.getParameter("GlobalXfo").setValue(xfo);
+      return geomItem
+    }
     /*
       EXERCISE
     */
 
-    const sphere = new Sphere(0.25, 16, 10) // create one sphere and share it -- reuse geo
-    const marker_geo = new Sphere(0.1, 8, 5) 
-    const cross = new Cross(0.75)
-    const origin = new Cross(14)
+    const sphere = new Sphere(0.05, 16, 10) // create one sphere and share it -- reuse geo
+    const marker_geo = new Sphere(0.001, 8, 5) 
+    const cross = new Cross(0.01)
+    const origin = new Cross(0.15)
     const cylinder = new Cylinder(0.5, 8, 12)
 
     function computeXfo(pt1, pt2, pt3){
@@ -374,8 +383,12 @@
             });
             console.log("lines: ", lines, " triangles: ", triangles);
           });
-          renderer.frameAll();
+          
+      
+          
           pcb_exercise(asset)
+          renderer.frameAll();
+          
         });
       }
       scene.getRoot().addChild(asset);
@@ -383,14 +396,31 @@
     }
 
     function pcb_exercise(asset){
-      console.log(asset.getChildNames() )
+      // markers
+      const pt1 =  new Vec3(-0.05,0,0.04);
+      const pt2 =  new Vec3(0.05,0,-0.01);
+      const pt3 =  new Vec3(0,0.02,0.05);
+
+      add_markers(pt1,pt2,pt3)
+      const xfo = computeXfo(pt1,pt2,pt3)
+      const o= createGeo2(xfo, origin, 'origin')
+      scene.getRoot().addChild(o)
+     
+      // console.log(asset. getChildren()  )
 
       const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Edges']
       const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Edges']
       const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Edges']
-      const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Edges']
+      //const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Edges']
 
-      console.log(asset.resolvePath(body1).__localXfoParam.getValue().tr)
+      const p1 = asset.resolvePath(body1).__localXfoParam.getValue().tr
+      const p2 = asset.resolvePath(body2).__localXfoParam.getValue().tr
+      const p3 = asset.resolvePath(body3).__localXfoParam.getValue().tr
+
+      // calculate globalXfo?
+      console.log(p1)
+
+      
     }
 
 
