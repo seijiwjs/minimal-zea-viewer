@@ -507,23 +507,27 @@
       });
 
       let selected_obj = null
+      let selected_transform = null
       renderer.getViewport().on("pointerDown", (event) => {
         if (event.intersectionData) {
           const { geomItem } = event.intersectionData;
           selected_obj = geomItem
+
+          selected_transform = selected_obj.__globalXfoParam.getValue().tr
           console.log("selected: ", selected_obj.__name)
-          console.log(geomItem.getPath());
-          // const tr = selected_obj.__globalXfoParam.getValue().tr.__data
-          // console.log("xfo: ",  tr)
-          // selected_obj.__globalXfoParam.getValue().tr.__data = tr.add(new Vec3(1,0,1))
+          console.log("selected transform: ", selected_transform)
+          // console.log(geomItem.getPath());
+
+          selected_transform.addInPlace(new Vec3(0,1,0)) // works
+          
         }
       });
       renderer.getViewport().on("pointerMove", (event) => {
-          // console.log(selected_obj)
+          // need frustrums viewing plane... 
       });
       renderer.getViewport().on("pointerUp", (event) => {
         selected_obj = null
-
+        let selected_transform = null
       });
     /*
       Exercise end
