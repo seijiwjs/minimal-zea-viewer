@@ -257,6 +257,7 @@
       geomItem.getParameter("GlobalXfo").setValue(xfo);
       return geomItem
     }
+    
     /*
       EXERCISE
     */
@@ -311,7 +312,7 @@
       const tr1 = sphere1.getParameter("GlobalXfo").getValue().tr
       const tr2 = sphere2.getParameter("GlobalXfo").getValue().tr
       const tr3 = sphere2.getParameter("GlobalXfo").getValue().tr 
-
+      
       // compute deltas
       const xfo_model = computeXfo(tr1, tr2, tr3)
       const root_xfo = cy.getParameter("GlobalXfo").getValue();
@@ -395,6 +396,23 @@
       
     }
 
+    function computeDelta(root_xfo, model_points, marker_points){
+      const [tr1, tr2, tr3] = model_points
+      const [pt1, pt2, pt3] = marker_points
+
+      const xfo_model = computeXfo(tr1, tr2, tr3)
+   
+      const model_root_xfo_delta = xfo_model.inverse().multiply(root_xfo)
+
+      const xfo_markers = computeXfo(pt1, pt2, pt3)
+      const xfo_delta = xfo_model.inverse().multiply(xfo_markers)
+
+      const xfo = xfo_model.multiply(xfo_delta)
+      const final = xfo.multiply(model_root_xfo_delta)
+      return final
+    }
+
+
     function pcb_exercise(asset){
       // markers
       const pt1 =  new Vec3(-0.05,0,0.04);
@@ -402,25 +420,57 @@
       const pt3 =  new Vec3(0,0.02,0.05);
 
       add_markers(pt1,pt2,pt3)
-      const xfo = computeXfo(pt1,pt2,pt3)
-      const o= createGeo2(xfo, origin, 'origin')
-      scene.getRoot().addChild(o)
-     
-      // console.log(asset. getChildren()  )
 
-      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Edges']
-      const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Edges']
-      const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Edges']
-      //const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Edges']
-
-      const p1 = asset.resolvePath(body1).__localXfoParam.getValue().tr
-      const p2 = asset.resolvePath(body2).__localXfoParam.getValue().tr
-      const p3 = asset.resolvePath(body3).__localXfoParam.getValue().tr
-
-      // calculate globalXfo?
-      console.log(p1)
-
+      // compute coordinate frame for markers and visualize frame
+      // const xfo = computeXfo(pt1,pt2,pt3)
+      // const origin_geo = createGeo2(xfo, origin, 'origin')
+      // scene.getRoot().addChild(origin_geo)
       
+
+      // get transforms for holes
+      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Body1'] 
+      const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
+      const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Body3001']
+      // const body4 = ['HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Body4']
+
+      const p1 = asset.resolvePath(body1).getGeomMat4().translation
+      const p2 = asset.resolvePath(body2).getGeomMat4().translation
+      const p3 = asset.resolvePath(body3).getGeomMat4().translation
+
+      // visualize holes
+      const m1 = createGeo(p1, marker_geo, 'mark1', rmat)
+      scene.getRoot().addChild(m1)
+      const m2 = createGeo(p2, marker_geo, 'mark2', gmat)
+      scene.getRoot().addChild(m2)
+      const m3 = createGeo(p3, marker_geo, 'mark3', bmat)
+      scene.getRoot().addChild(m3)
+
+      //get root transform
+      //const root_body = [ 'HC_SRO4', 'HC_SRO4'] /// .resolvePath(root_body)
+      //const root_xfo = root.getParameter("GlobalXfo").getValue();
+      // .getParameter("GlobalXfo").getValue();
+      // const model_root_xfo = asset.getChildByName('HC_SRO4').__globalXfoParam.getValue() // broken
+      //const model_root_xfo = asset.getParameter("GlobalXfo").getValue();
+
+      const model_root= scene.getRoot().getChildByName('HC_SRO4')
+      const new_xfo = new Xfo()
+      new_xfo.tr = new Vec3(1,0,1)
+      
+      model_root.getParameter("GlobalXfo").setValue(new_xfo)
+      const model_root_xfo = model_root.getParameter("GlobalXfo").getValue();
+
+      // console.log(scene.getRoot().getChildByName('HC_SRO4'))
+      // console.log(model_root_xfo)
+      console.log(model_root_xfo)
+
+      const delta_xfo = computeDelta(model_root_xfo, [p1,p2,p3],[pt1,pt2,pt3])
+      const model_origin_geo = createGeo2(delta_xfo, origin, 'origin')
+      scene.getRoot().addChild(model_origin_geo)
+
+      // let o = createGeo(xfo_model.tr, origin, 'origin')
+      // scene.getRoot().addChild(o)
+      // apply to model
+      // cy.getParameter("GlobalXfo").setValue(final);
     }
 
 
