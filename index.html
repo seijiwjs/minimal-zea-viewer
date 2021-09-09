@@ -415,23 +415,10 @@
     function fit_markers(model_points, marker_points){
       const [s1, s2, s3] = model_points
       const [m1, m2, m3] = marker_points
-
-      
-      // get vector, p+dir*p2p1.length
-      // just apply distances. p2 = p1 + p2p1 * length
-
-      const m2m1 = s2.subtract(s1)
-      const m3m1 = s3.subtract(s1)
-      const m2m3 = s2.subtract(s3)
-      const new_s1 = s1 
-      const new_s2 = s2
-      const new_s3 = s3 
-
-
-      //lengthSquared() 
-      //scaleInPlace()
-      //subtract
-      return [m1,m2,m3]
+      const new_s1 = m1.resize(s1.length())
+      const new_s2 = m2.resize(s2.length())
+      const new_s3 = m3.resize(s3.length())
+      return [new_s1,new_s2,new_s3]
     }
 
     function pcb_exercise(asset){
@@ -439,16 +426,16 @@
       const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Body1'] 
       const body2 = ['HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Body4']
       const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Body3001']
-      const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
+      // const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
       const part1 = asset.resolvePath(body1)
       const part2 = asset.resolvePath(body2)
       const part3 = asset.resolvePath(body3)
-      const part4 = asset.resolvePath(body4)
+      //const part4 = asset.resolvePath(body4)
       const p1 = part1.getGeomMat4().translation
       const p2 = part2.getGeomMat4().translation
       const p3 = part3.getGeomMat4().translation
-      const p4 = part4.getGeomMat4().translation
-
+      //const p4 = part4.getGeomMat4().translation
+   
       // visualize holes
       const m1 = createGeo(p1, marker_geo, 'mark1', rmat)
       part1.addChild(m1)
