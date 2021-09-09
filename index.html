@@ -235,8 +235,8 @@
       const marker3 = createGeo(pt3, cross, 'Cross3');
 
       let s1 = createGeo(pt1, marker_geo, 'm1', rmat) 
-      let s2 = createGeo(pt2, marker_geo, 'm2', bmat)
-      let s3 = createGeo(pt3, marker_geo, 'm3', gmat)
+      let s2 = createGeo(pt2, marker_geo, 'm2', gmat)
+      let s3 = createGeo(pt3, marker_geo, 'm3', bmat)
 
       marker1.addChild(s1)
       marker2.addChild(s2)
@@ -246,6 +246,8 @@
       scene.getRoot().addChild(marker1)
       scene.getRoot().addChild(marker2)
       scene.getRoot().addChild(marker3)
+
+      return [marker1, marker2, marker3]
     }
 
     function createGeo2(xfo, geom, geomName, mat){
@@ -410,13 +412,62 @@
       return final
     }
 
+    function fit_markers(model_points, marker_points){
+      const [s1, s2, s3] = model_points
+      const [m1, m2, m3] = marker_points
+
+      
+      // get vector, p+dir*p2p1.length
+      // just apply distances. p2 = p1 + p2p1 * length
+
+      const m2m1 = s2.subtract(s1)
+      const m3m1 = s3.subtract(s1)
+      const m2m3 = s2.subtract(s3)
+      const new_s1 = s1 
+      const new_s2 = s2
+      const new_s3 = s3 
+
+
+      //lengthSquared() 
+      //scaleInPlace()
+      //subtract
+      return [m1,m2,m3]
+    }
 
     function pcb_exercise(asset){
-      // markers
-      const pt1 =  new Vec3(-0.05,0,0.04);
-      const pt2 =  new Vec3(0.05,0,-0.01);
-      const pt3 =  new Vec3(0,0.02,0.05);
+      // get transforms for holes
+      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Body1'] 
+      const body2 = ['HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Body4']
+      const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Body3001']
+      const body4 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
+      const part1 = asset.resolvePath(body1)
+      const part2 = asset.resolvePath(body2)
+      const part3 = asset.resolvePath(body3)
+      const part4 = asset.resolvePath(body4)
+      const p1 = part1.getGeomMat4().translation
+      const p2 = part2.getGeomMat4().translation
+      const p3 = part3.getGeomMat4().translation
+      const p4 = part4.getGeomMat4().translation
 
+      // visualize holes
+      const m1 = createGeo(p1, marker_geo, 'mark1', rmat)
+      part1.addChild(m1)
+      const m2 = createGeo(p2, marker_geo, 'mark2', gmat)
+      part2.addChild(m2)
+      const m3 = createGeo(p3, marker_geo, 'mark3', bmat)
+      part3.addChild(m3)
+      // const m4 = createGeo(p4, marker_geo, 'mark4', bmat)
+      // scene.getRoot().addChild(m4)
+
+
+      /*
+        Set Markers
+      */
+      const marker_pt1 =  new Vec3(-0.05,0,0.04);
+      const marker_pt2 =  new Vec3(0.05,0,-0.01);
+      const marker_pt3 =  new Vec3(0,0.02,0.05);
+      
+      const [pt1,pt2,pt3] = fit_markers([p1,p2,p3],[marker_pt1,marker_pt2,marker_pt3])
       add_markers(pt1,pt2,pt3)
 
       // compute coordinate frame for markers and visualize frame
@@ -425,32 +476,12 @@
       scene.getRoot().addChild(origin_geo)
       
 
-      // get transforms for holes
-      const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Body1'] 
-      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
-      const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Body3001']
-      // const body4 = ['HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Body4']
-
-      const p1 = asset.resolvePath(body1).getGeomMat4().translation
-      const p2 = asset.resolvePath(body2).getGeomMat4().translation
-      const p3 = asset.resolvePath(body3).getGeomMat4().translation
-
-      // visualize holes
-      const m1 = createGeo(p1, marker_geo, 'mark1', rmat)
-      scene.getRoot().addChild(m1)
-      const m2 = createGeo(p2, marker_geo, 'mark2', gmat)
-      scene.getRoot().addChild(m2)
-      const m3 = createGeo(p3, marker_geo, 'mark3', bmat)
-      scene.getRoot().addChild(m3)
-
-     
+      /*
+        Compute Delta
+      */
       //get root transform
-      // const model_root = scene.getRoot().getChildByName('HC_SRO4') // correct?
       const model_root_xfo = asset.getParameter("GlobalXfo").getValue();
-     // model_root.getParameter("LocalXfo").setValue(new_xfo)
-     // const model_root_xfo = model_root.getParameter("GlobalXfo").getValue();
-      console.log(model_root_xfo)
-
+ 
       // compute deltas. 
       const delta_xfo = computeDelta(model_root_xfo, [p1,p2,p3],[pt1,pt2,pt3])
 
@@ -458,13 +489,8 @@
       const model_origin_geo = createGeo2(delta_xfo, origin, 'origin')
       scene.getRoot().addChild(model_origin_geo)
 
+      //apply to model
       asset.getParameter("GlobalXfo").setValue(delta_xfo );
-     
-
-      // let o = createGeo(xfo_model.tr, origin, 'origin')
-      // scene.getRoot().addChild(o)
-      // apply to model
-      // cy.getParameter("GlobalXfo").setValue(final);
     }
 
 
