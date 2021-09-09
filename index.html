@@ -259,12 +259,25 @@
       geomItem.getParameter("GlobalXfo").setValue(xfo);
       return geomItem
     }
-    
+    function createGeo3(xfo, geom, geomName, mat){
+      let m = default_material
+      if(mat){
+        m = mat
+      }
+      const geomItem = new GeomItem(geomName, geom,  m)
+      geomItem.getParameter("GlobalXfo").setValue(xfo);
+      geomItem.on('pointerDown', event => {
+        console.log("event triggered")
+      })
+      return geomItem
+    }
     /*
       EXERCISE
     */
 
     const sphere = new Sphere(0.05, 16, 10) // create one sphere and share it -- reuse geo
+    const sphere_medium = new Sphere(0.5, 16, 10)
+    const sphere_large = new Sphere(1.0, 16, 10)
     const marker_geo = new Sphere(0.001, 8, 5) 
     const cross = new Cross(0.01)
     const origin = new Cross(0.15)
@@ -481,14 +494,42 @@
     }
 
 
-    const asset = load_asset("./data/HC_SRO4.zcad")
-    asset.on("loaded", () => {
-      pcb_exercise(asset)
+    // const asset = load_asset("./data/HC_SRO4.zcad")
+    // asset.on("loaded", () => {
+    //   pcb_exercise(asset)
+    // })
+    
+    const xfo = new Xfo(new Vec3(0,0.5,-0.5))
+    const obj = createGeo2(xfo, sphere_medium, 'marker1000', rmat)
+    // const obj = createGeo3(xfo, sphere_large, 'marker1000', rmat) // register event
+    scene.getRoot().addChild(obj)
+
+    // TODO: make a ray with hit point and camera direciton 
+    // TODO: spawn spheres at drag points 
+    // TODO: affect exercises
+
+    renderer.getViewport().on('pointerDown', (event)=>{
+      // register event
+      const target = renderer.getViewport().getCamera().getTargetPosition()
+
+      if (event.intersectionData) {
+        console.log('hit')
+        const { geomItem } = event.intersectionData;
+
+        const dist  = event.intersectionData.dist
+        const dir = event.pointerRay.dir
+        const start = event.pointerRay.start
+        const hit_pt = start.add(dir.scale(dist))
+        const obj_hit = createGeo2(new Xfo(hit_pt), sphere, 'hit_marker', bmat)
+        scene.getRoot().addChild(obj_hit)
+      }
     })
-    
-
-
-    
+    renderer.getViewport().on('pointerMove', ()=>{
+      // call move code
+    })
+    renderer.getViewport().on('pointerUp', ()=>{
+      // deregister
+    })
     /*
       UI
     */
@@ -508,27 +549,27 @@
 
       let selected_obj = null
       let selected_transform = null
-      renderer.getViewport().on("pointerDown", (event) => {
-        if (event.intersectionData) {
-          const { geomItem } = event.intersectionData;
-          selected_obj = geomItem
+      // renderer.getViewport().on("pointerDown", (event) => {
+      //   if (event.intersectionData) {
+      //     const { geomItem } = event.intersectionData;
+      //     selected_obj = geomItem
 
-          selected_transform = selected_obj.__globalXfoParam.getValue().tr
-          console.log("selected: ", selected_obj.__name)
-          console.log("selected transform: ", selected_transform)
-          // console.log(geomItem.getPath());
+      //     selected_transform = selected_obj.__globalXfoParam.getValue().tr
+      //     console.log("selected: ", selected_obj.__name)
+      //     console.log("selected transform: ", selected_transform)
+      //     // console.log(geomItem.getPath());
 
-          selected_transform.addInPlace(new Vec3(0,1,0)) // works
+      //     selected_transform.addInPlace(new Vec3(0,1,0)) // works
           
-        }
-      });
-      renderer.getViewport().on("pointerMove", (event) => {
-          // need frustrums viewing plane... 
-      });
-      renderer.getViewport().on("pointerUp", (event) => {
-        selected_obj = null
-        let selected_transform = null
-      });
+      //   }
+      // });
+      // renderer.getViewport().on("pointerMove", (event) => {
+      //     // need frustrums viewing plane... 
+      // });
+      // renderer.getViewport().on("pointerUp", (event) => {
+      //   selected_obj = null
+      //   let selected_transform = null
+      // });
     /*
       Exercise end
     */
