@@ -354,11 +354,9 @@
     /*
       PCB EXERCISE
     */
-    function load_asset(){
+    function load_asset(zcad){
       const asset = new CADAsset();
-      const zcad = urlParams.has("zcad")
-        ? urlParams.get("zcad")
-        : "./data/HC_SRO4.zcad";
+      
       if (zcad) {
         asset.load(zcad).then(() => {
           let count = 0;
@@ -387,13 +385,13 @@
           
       
           
-          pcb_exercise(asset)
+          
           renderer.frameAll();
           
         });
       }
       scene.getRoot().addChild(asset);
-      
+      return asset
     }
 
     function computeDelta(root_xfo, model_points, marker_points){
@@ -422,14 +420,14 @@
       add_markers(pt1,pt2,pt3)
 
       // compute coordinate frame for markers and visualize frame
-      // const xfo = computeXfo(pt1,pt2,pt3)
-      // const origin_geo = createGeo2(xfo, origin, 'origin')
-      // scene.getRoot().addChild(origin_geo)
+      const xfo = computeXfo(pt1,pt2,pt3)
+      const origin_geo = createGeo2(xfo, origin, 'origin')
+      scene.getRoot().addChild(origin_geo)
       
 
       // get transforms for holes
-      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Body1'] 
-      const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
+      const body2 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body1', 'Body1'] 
+      const body1 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body2', 'Body2001']
       const body3 = [ 'HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body3', 'Body3001']
       // const body4 = ['HC_SRO4', 'HC_SRO4', 'Board:1', 'Board', 'Body4', 'Body4']
 
@@ -445,27 +443,23 @@
       const m3 = createGeo(p3, marker_geo, 'mark3', bmat)
       scene.getRoot().addChild(m3)
 
+     
       //get root transform
-      //const root_body = [ 'HC_SRO4', 'HC_SRO4'] /// .resolvePath(root_body)
-      //const root_xfo = root.getParameter("GlobalXfo").getValue();
-      // .getParameter("GlobalXfo").getValue();
-      // const model_root_xfo = asset.getChildByName('HC_SRO4').__globalXfoParam.getValue() // broken
-      //const model_root_xfo = asset.getParameter("GlobalXfo").getValue();
-
-      const model_root= scene.getRoot().getChildByName('HC_SRO4')
-      const new_xfo = new Xfo()
-      new_xfo.tr = new Vec3(1,0,1)
-      
-      model_root.getParameter("GlobalXfo").setValue(new_xfo)
-      const model_root_xfo = model_root.getParameter("GlobalXfo").getValue();
-
-      // console.log(scene.getRoot().getChildByName('HC_SRO4'))
-      // console.log(model_root_xfo)
+      // const model_root = scene.getRoot().getChildByName('HC_SRO4') // correct?
+      const model_root_xfo = asset.getParameter("GlobalXfo").getValue();
+     // model_root.getParameter("LocalXfo").setValue(new_xfo)
+     // const model_root_xfo = model_root.getParameter("GlobalXfo").getValue();
       console.log(model_root_xfo)
 
+      // compute deltas. 
       const delta_xfo = computeDelta(model_root_xfo, [p1,p2,p3],[pt1,pt2,pt3])
+
+      // visualize new xfo
       const model_origin_geo = createGeo2(delta_xfo, origin, 'origin')
       scene.getRoot().addChild(model_origin_geo)
+
+      asset.getParameter("GlobalXfo").setValue(delta_xfo );
+     
 
       // let o = createGeo(xfo_model.tr, origin, 'origin')
       // scene.getRoot().addChild(o)
@@ -474,8 +468,11 @@
     }
 
 
-    load_asset()
- 
+    const asset = load_asset("./data/HC_SRO4.zcad")
+    asset.on("loaded", () => {
+      pcb_exercise(asset)
+    })
+    
 
 
     
