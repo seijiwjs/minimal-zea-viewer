@@ -149,7 +149,7 @@
       GeomItem,
       MeshProxy,
       LinesProxy,
-      Vec3, Sphere, Material,  GLBoundingBoxPass, Cylinder, Cross
+      Vec3, Sphere, Material,  GLBoundingBoxPass, Cylinder, Cross, Plane, Ray
     } = zeaEngine;
     const { CADAsset } = zeaCad;
 
@@ -184,6 +184,13 @@
     const gmat = new Material('surfaces', 'SimpleSurfaceShader')
     gmat.getParameter('BaseColor').setValue(new Color(10/ 255, 10 / 255, 182 / 255))
 
+    // transparent for debugging
+    const transparent_mat = new Material('surfaces', 'StandardSurfaceShader')
+    transparent_mat.getParameter('BaseColor').setValue(1,1,0)
+    transparent_mat.getParameter('Metallic').setValue(1.0)
+    transparent_mat.getParameter('Reflectance').setValue(1.0)
+    transparent_mat.getParameter('Roughness').setValue(0.5)
+    transparent_mat.getParameter('Opacity').setValue(5 / 10)
 
     function createGeo(pos, geom, geomName, mat){
       let m = default_material
@@ -259,7 +266,14 @@
       geomItem.getParameter("GlobalXfo").setValue(xfo);
       return geomItem
     }
+    
+    //TODO: use grid plane as dragging surface
+    //TODO: lerp
     function createGeo3(xfo, geom, geomName, mat){
+
+      let dragging = false
+      let initial_xfo = null
+
       let m = default_material
       if(mat){
         m = mat
@@ -267,7 +281,29 @@
       const geomItem = new GeomItem(geomName, geom,  m)
       geomItem.getParameter("GlobalXfo").setValue(xfo);
       geomItem.on('pointerDown', event => {
-        console.log("event triggered")
+        console.log("dragging true")
+        initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
+        event.setCapture(geomItem)
+        dragging = true
+      })
+      // pointer events
+      geomItem.on('pointerMove', event => {
+        if(dragging){
+          const hit_pt = get_hit_pos_floor(event)
+          const hit_xfo = geomItem.getParameter("GlobalXfo").getValue(xfo);
+          hit_xfo.tr = hit_pt
+          geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
+        }
+      })
+
+      geomItem.on('pointerUp', event => {
+        
+        if(event.getCapture() == geomItem) {
+          console.log("dragging false")
+          dragging = false
+          event.releaseCapture()
+        }
+          
       })
       return geomItem
     }
@@ -282,6 +318,7 @@
     const cross = new Cross(0.01)
     const origin = new Cross(0.15)
     const cylinder = new Cylinder(0.5, 8, 12)
+    const plane_geo = new Plane(0.5, 0.5)
 
     function computeXfo(pt1, pt2, pt3){
       const pt12 = pt2.subtract(pt1);
@@ -494,42 +531,148 @@
     }
 
 
+    /*
+      Mouse Exercise
+    */
+
+
+    function get_hit_point(event){
+        const dist  = event.intersectionData.dist
+        const dir = event.pointerRay.dir
+        const start = event.pointerRay.start
+        const hit_pt = start.add(dir.scale(dist))
+
+        return hit_pt
+    }
+
+    function create_point(event){
+        const hit_pt = get_hit_point(event)
+        const obj_hit = createGeo2(new Xfo(hit_pt), sphere, 'hit_marker', bmat)
+        scene.getRoot().addChild(obj_hit)
+    }
+
+    function get_hit_plane_pointer(event){
+        const dist  = event.intersectionData.dist
+        const dir = event.pointerRay.dir
+        const start = event.pointerRay.start
+        const hit_pt = start.add(dir.scale(dist))
+
+        return new Ray(hit_pt, dir)
+    }
+
+    function create_plane_pointer(event){
+      const ray = get_hit_plane_pointer(event)
+      const quat = new Quat()
+      quat.setFromDirectionAndUpvector(ray.dir, new Vec3(0,0,1))
+      const xfo = new Xfo(ray.start, quat)
+
+      const obj_hit = createGeo2(xfo, plane_geo, 'hit_marker', gmat)
+      scene.getRoot().addChild(obj_hit)
+    }
+
+
+    // TODO: make the plane perpendicular to viewing plane.
+    // TODO: drag sphere within grid
+
+    
+    function get_hit_plane(event){
+        const dist  = event.intersectionData.dist
+        const dir = event.pointerRay.dir
+        const start = event.pointerRay.start
+        const hit_pt = start.add(dir.scale(dist))
+
+        return new Ray(hit_pt, dir)
+    }
+
+    function create_plane(event){
+      const ray = get_hit_plane(event)
+      const quat = new Quat()
+      const cam = event.viewport.getCamera()
+      const cam_xfo = cam.getParameter("GlobalXfo").getValue()
+      const cam_ori = cam_xfo.ori
+      const cam_forward = cam_ori.getZaxis()
+
+      quat.setFromDirectionAndUpvector(cam_forward, new Vec3(0,0,1))
+      const xfo = new Xfo(ray.start, quat)
+
+      const obj_hit = createGeo2(xfo, plane_geo, 'hit_marker', gmat)
+      scene.getRoot().addChild(obj_hit)
+    }
+   
+   function get_hit_pos_floor(event){
+        const dir = event.pointerRay.dir
+        const start = event.pointerRay.start
+        const ray = new Ray(start, dir)
+        const floor = new Ray(new Vec3(0,0,0), new Vec3(0,0,1))
+        const dist = ray.intersectRayPlane(floor)
+        const hit_pt = start.add(dir.scale(dist))
+        return hit_pt
+    }
+
+    function create_plane_floor(event){
+      const hit_pt = get_hit_pos_floor(event)
+
+      const obj_hit = createGeo2(new Xfo(hit_pt), plane_geo, 'hit_marker', gmat)
+      scene.getRoot().addChild(obj_hit)
+    }
+    function create_plane_floor_discrete(event){
+      const hit_pt = get_hit_pos_floor(event)
+      const pt = new Vec3(
+       Math.round(hit_pt.x)+0.5,
+       Math.round(hit_pt.y)+0.5, 
+       Math.round(hit_pt.z))
+      const obj_hit = createGeo2(new Xfo(pt), plane_geo, 'hit_marker', gmat)
+      scene.getRoot().addChild(obj_hit)
+    }
+
+
+    /*
+      MAIN
+    */
+
+
     // const asset = load_asset("./data/HC_SRO4.zcad")
     // asset.on("loaded", () => {
     //   pcb_exercise(asset)
     // })
     
     const xfo = new Xfo(new Vec3(0,0.5,-0.5))
-    const obj = createGeo2(xfo, sphere_medium, 'marker1000', rmat)
-    // const obj = createGeo3(xfo, sphere_large, 'marker1000', rmat) // register event
-    scene.getRoot().addChild(obj)
+    const sphere_obj = createGeo3(xfo, sphere_large, 'marker1000', rmat) // register event
+    scene.getRoot().addChild(sphere_obj)
 
-    // TODO: make a ray with hit point and camera direciton 
-    // TODO: spawn spheres at drag points 
-    // TODO: affect exercises
+    
 
-    renderer.getViewport().on('pointerDown', (event)=>{
-      // register event
-      const target = renderer.getViewport().getCamera().getTargetPosition()
 
+
+
+    // TODO: use this plane to drag geo 
+    // TODO: adapt to previous exercises
+
+
+
+    let stored_plane = null
+    renderer.getViewport().on('pointerDown', (event)=>{      // register event
+      // const hit_pt = get_hit_pos_floor(event)
+      // sphere_obj.getParameter("GlobalXfo").setValue(new Xfo(hit_pt))
+      // create_plane_floor(event)
+      //create_plane_floor_discrete(event)
       if (event.intersectionData) {
-        console.log('hit')
         const { geomItem } = event.intersectionData;
-
-        const dist  = event.intersectionData.dist
-        const dir = event.pointerRay.dir
-        const start = event.pointerRay.start
-        const hit_pt = start.add(dir.scale(dist))
-        const obj_hit = createGeo2(new Xfo(hit_pt), sphere, 'hit_marker', bmat)
-        scene.getRoot().addChild(obj_hit)
+        // stored_plane = get_hit_plane_pointer(event)
       }
     })
     renderer.getViewport().on('pointerMove', ()=>{
       // call move code
+      // TODO: 
     })
     renderer.getViewport().on('pointerUp', ()=>{
       // deregister
+      stored_plane = null
     })
+
+
+
+
     /*
       UI
     */
@@ -547,8 +690,8 @@
         highlightedItem = null;
       });
 
-      let selected_obj = null
-      let selected_transform = null
+      // let selected_obj = null
+      // let selected_transform = null
       // renderer.getViewport().on("pointerDown", (event) => {
       //   if (event.intersectionData) {
       //     const { geomItem } = event.intersectionData;
