@@ -149,7 +149,7 @@
       GeomItem,
       MeshProxy,
       LinesProxy,
-      Vec3, Sphere, Material,  GLBoundingBoxPass, Cylinder, Cross, Plane, Ray
+      Vec3, Sphere, Material,  GLBoundingBoxPass, Cylinder, Cross, Plane, Ray, MathFunctions
     } = zeaEngine;
     const { CADAsset } = zeaCad;
 
@@ -539,30 +539,8 @@
       scene.getRoot().addChild(obj_hit)
     }
 
-    function get_hit_plane(event){
-        const dist  = event.intersectionData.dist
-        const dir = event.pointerRay.dir
-        const start = event.pointerRay.start
-        const hit_pt = start.add(dir.scale(dist))
 
-        return new Ray(hit_pt, dir)
-    }
 
-    function create_plane(event){
-      const ray = get_hit_plane(event)
-      const quat = new Quat()
-      const cam = event.viewport.getCamera()
-      const cam_xfo = cam.getParameter("GlobalXfo").getValue()
-      const cam_ori = cam_xfo.ori
-      const cam_forward = cam_ori.getZaxis()
-
-      quat.setFromDirectionAndUpvector(cam_forward, new Vec3(0,0,1))
-      const xfo = new Xfo(ray.start, quat)
-
-      const obj_hit = createGeo2(xfo, plane_geo, 'hit_marker', gmat)
-      scene.getRoot().addChild(obj_hit)
-    }
-   
    function get_hit_pos_floor(event){
         const dir = event.pointerRay.dir
         const start = event.pointerRay.start
@@ -593,37 +571,40 @@
 
     //TODO: use grid plane as dragging surface
     //TODO: lerp
-    function createGeo3(xfo, geom, geomName, mat){
+    function createDraggable(xfo, geom, geomName, mat){
       let m = default_material
       if(mat){
         m = mat
       }
       const geomItem = new GeomItem(geomName, geom,  m)
-      addListeners(geomItem, grid_size)
+      addListeners_draggable(geomItem, grid_size)
       return geomItem
     }
-    // TODO: make the plane perpendicular to viewing plane.
-    // TODO: drag sphere within grid
+
     // EXTRA: grid snapping
-    function addListeners(geomItem, gridSize){
+    function addListeners_draggable(geomItem, gridSize){
       let dragging = false
       let initial_xfo = null
       let last_xfo = null
 
-      geomItem.getParameter("GlobalXfo").setValue(xfo);
       geomItem.on('pointerDown', event => {
         initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
         event.setCapture(geomItem)
         dragging = true
       })
-      // pointer events
+ 
       geomItem.on('pointerMove', event => {
         if(dragging){
           const hit_pt = get_hit_pos_floor(event)
           const hit_xfo = geomItem.getParameter("GlobalXfo").getValue();
+          const old_pos = hit_xfo.tr
+          
+          const x = Math.min(Math.max(hit_pt.x, -gridSize/2.0), gridSize/2.0)
+          const y = Math.min(Math.max(hit_pt.y, -gridSize/2.0), gridSize/2.0)
+          const new_pos = new Vec3(x,y,old_pos.z)
 
-          hit_xfo.tr.x = Math.min(Math.max(hit_pt.x, -gridSize/2.0), gridSize/2.0)
-          hit_xfo.tr.y = Math.min(Math.max(hit_pt.y, -gridSize/2.0), gridSize/2.0)
+          // const pos = MathFunctions.lerp(old_pos, new_pos, 0.5)
+          hit_xfo.tr = new_pos;
           geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
           last_xfo = hit_xfo
         }
@@ -638,22 +619,110 @@
       })
     }
 
-    /*
-      MAIN
-    */
+    // function getTime(){
+    //   const date = new Date();
+    //   const t = date.getTime();
+    //   return t-t0
+    // }
 
-    
+    function createDraggable2(xfo, geom, geomName, mat){
+      let m = default_material
+      if(mat){
+        m = mat
+      }
+      const geomItem = new GeomItem(geomName, geom,  m)
+      addListeners_draggable2(geomItem, grid_size)
+      return geomItem
+    }
+
+    function get_hit_plane(event){
+        const dist  = event.intersectionData.dist
+        const dir = event.pointerRay.dir
+        const start = event.pointerRay.start
+        const hit_pt = start.add(dir.scale(dist))
+
+        return new Ray(hit_pt, dir)
+    }
+    function create_plane(event){
+      const quat = new Quat()
+      const cam = event.viewport.getCamera()
+      const cam_xfo = cam.getParameter("GlobalXfo").getValue()
+      const cam_ori = cam_xfo.ori
+      const cam_forward = cam_ori.getZaxis()
+
+      quat.setFromDirectionAndUpvector(cam_forward, new Vec3(0,0,1))
+      const xfo = new Xfo(event.pointerRay.start, quat)
+
+      const obj_hit = createGeo2(xfo, plane_geo, 'hit_marker', gmat)
+      scene.getRoot().addChild(obj_hit)
+    }
+
+    function visualize_plane(){
+
+    }
+   
+    function addListeners_draggable2(geomItem, gridSize){
+      let dragging = false
+      let initial_xfo = null
+      let last_xfo = null
+      let hit_plane = null
+
+      geomItem.on('pointerDown', event => {
+        initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
+        hit_plane = get_hit_plane(event)
+        visualize_plane(hit_plane)
+        event.setCapture(geomItem)
+        dragging = true
+      })
+      
+      geomItem.on('pointerMove', event => {
+        if(dragging){
+          const ray = event.pointerRay
+          const dist = ray.intersectRayPlane(hit_plane)
+          const hit_pt = ray.pointAtDist(dist)
+          const geom_xfo = geomItem.getParameter("GlobalXfo").getValue();
+          const old_pos = geom_xfo.tr
+          const new_pos = hit_pt
+          geom_xfo.tr = new_pos;
+          geomItem.getParameter("GlobalXfo").setValue(geom_xfo);
+          last_xfo = geom_xfo
+        }
+      })
+
+      geomItem.on('pointerUp', event => {
+        if(event.getCapture() == geomItem) {
+          dragging = false
+          event.releaseCapture()
+          hit_plane = null
+          scene.getRoot().removeChild(hit_plane)
+        }
+      })
+    }
+
     const grid_size = 10
     scene.setupGrid(grid_size, 100);
 
-  
-    const xfo = new Xfo(new Vec3(0,0.5,0))
-    const sphere_obj = createGeo3(xfo, sphere_large, 'marker1000', rmat) // register event
-    scene.getRoot().addChild(sphere_obj)
+    /*
+      MAIN
+    */
+   
     
     
+    // TODO: drag object along hit_plane
 
-
+    const mode = 1;
+    
+    // grid drag
+    if(mode == 0){
+      const xfo = new Xfo(new Vec3(0,0.5,0))
+      const draggable_sphere = createDraggable(xfo, sphere_large, 'marker1000', rmat) // register event
+      scene.getRoot().addChild(draggable_sphere)
+      // TODO: time + frame for lerp -- best way?
+    } else if(mode == 1){
+      const xfo = new Xfo(new Vec3(0,0.5,0))
+      const draggable_sphere = createDraggable2(xfo, sphere_large, 'marker1000', rmat) // register event
+      scene.getRoot().addChild(draggable_sphere)
+    }
 
 
     // TODO: use this plane to drag geo 
