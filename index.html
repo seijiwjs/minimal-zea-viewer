@@ -657,6 +657,7 @@
       scene.getRoot().addChild(obj_hit)
     }
 
+    // TODO: wip. Plane that removes itself on pointerUp
     function visualize_plane(hit_plane){
       
       const vquat = new Quat()
@@ -732,32 +733,7 @@
     }
 
 
-    // TODO: use this plane to drag geo 
     // TODO: adapt to previous exercises
-
-
-
-    // let stored_plane = null
-    // renderer.getViewport().on('pointerDown', (event)=>{      // register event
-    //   // const hit_pt = get_hit_pos_floor(event)
-    //   // sphere_obj.getParameter("GlobalXfo").setValue(new Xfo(hit_pt))
-    //   // create_plane_floor(event)
-    //   //create_plane_floor_discrete(event)
-    //   if (event.intersectionData) {
-    //     const { geomItem } = event.intersectionData;
-    //     // stored_plane = get_hit_plane_pointer(event)
-    //   }
-    // })
-    // renderer.getViewport().on('pointerMove', ()=>{
-    //   // call move code
-    //   // TODO: 
-    // })
-    // renderer.getViewport().on('pointerUp', ()=>{
-    //   // deregister
-    //   stored_plane = null
-    // })
-
-
 
 
     /*
