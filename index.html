@@ -281,7 +281,7 @@
     const origin = new Cross(0.15)
     const cylinder = new Cylinder(0.5, 8, 12)
     const plane_geo = new Plane(0.5, 0.5)
-
+    const plane_large = new Plane(5, 5)
     function computeXfo(pt1, pt2, pt3){
       const pt12 = pt2.subtract(pt1);
       const pt13 = pt3.subtract(pt1);
@@ -657,8 +657,17 @@
       scene.getRoot().addChild(obj_hit)
     }
 
-    function visualize_plane(){
+    function visualize_plane(hit_plane){
+      
+      const vquat = new Quat()
+      vquat.setFromDirectionAndUpvector(hit_plane.dir, new Vec3(0,0,1))
+      const vxfo = new Xfo(hit_plane.start, vquat)
+      const vplane = createGeo2(vxfo, plane_large, 'plane', gmat)
 
+      // scene.getRoot().addChild(vplane)
+      // vplane.on('pointerUp', event => {
+      //   scene.getRoot().removeChild(vplane)
+      // })
     }
    
     function addListeners_draggable2(geomItem, gridSize){
@@ -666,11 +675,13 @@
       let initial_xfo = null
       let last_xfo = null
       let hit_plane = null
+      let viz_plane = null
 
       geomItem.on('pointerDown', event => {
         initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
         hit_plane = get_hit_plane(event)
-        visualize_plane(hit_plane)
+        viz_plane = visualize_plane(hit_plane)
+        
         event.setCapture(geomItem)
         dragging = true
       })
@@ -694,8 +705,8 @@
           dragging = false
           event.releaseCapture()
           hit_plane = null
-          scene.getRoot().removeChild(hit_plane)
         }
+
       })
     }
 
@@ -706,10 +717,6 @@
       MAIN
     */
    
-    
-    
-    // TODO: drag object along hit_plane
-
     const mode = 1;
     
     // grid drag
