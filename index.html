@@ -604,7 +604,7 @@
     }
     // TODO: make the plane perpendicular to viewing plane.
     // TODO: drag sphere within grid
-
+    // EXTRA: grid snapping
     function addListeners(geomItem, gridSize){
       let dragging = false
       let initial_xfo = null
@@ -621,14 +621,9 @@
         if(dragging){
           const hit_pt = get_hit_pos_floor(event)
           const hit_xfo = geomItem.getParameter("GlobalXfo").getValue();
-         
-          //buggy because hitpoint can be outside of grid while sphere is not at max
-          if(Math.abs(hit_pt.x) < Math.abs(gridSize)/2.0){
-            hit_xfo.tr.x = hit_pt.x
-          }
-          if( Math.abs(hit_pt.y) < Math.abs(gridSize)/2.0){
-            hit_xfo.tr.y = hit_pt.y
-          }
+
+          hit_xfo.tr.x = Math.min(Math.max(hit_pt.x, -gridSize/2.0), gridSize/2.0)
+          hit_xfo.tr.y = Math.min(Math.max(hit_pt.y, -gridSize/2.0), gridSize/2.0)
           geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
           last_xfo = hit_xfo
         }
