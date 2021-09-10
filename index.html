@@ -155,7 +155,7 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const scene = new Scene();
-    scene.setupGrid(10.0, 10);
+    // scene.setupGrid(10.0, 100);
 
     const renderer = new GLRenderer(document.getElementById("canvas"), {
       debugGeomIds: false,
@@ -267,44 +267,17 @@
       return geomItem
     }
     
+
+
     //TODO: use grid plane as dragging surface
     //TODO: lerp
     function createGeo3(xfo, geom, geomName, mat){
-
-      let dragging = false
-      let initial_xfo = null
-
       let m = default_material
       if(mat){
         m = mat
       }
       const geomItem = new GeomItem(geomName, geom,  m)
-      geomItem.getParameter("GlobalXfo").setValue(xfo);
-      geomItem.on('pointerDown', event => {
-        console.log("dragging true")
-        initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
-        event.setCapture(geomItem)
-        dragging = true
-      })
-      // pointer events
-      geomItem.on('pointerMove', event => {
-        if(dragging){
-          const hit_pt = get_hit_pos_floor(event)
-          const hit_xfo = geomItem.getParameter("GlobalXfo").getValue(xfo);
-          hit_xfo.tr = hit_pt
-          geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
-        }
-      })
-
-      geomItem.on('pointerUp', event => {
-        
-        if(event.getCapture() == geomItem) {
-          console.log("dragging false")
-          dragging = false
-          event.releaseCapture()
-        }
-          
-      })
+      addListeners(geomItem)
       return geomItem
     }
     /*
@@ -406,6 +379,8 @@
     /*
       PCB EXERCISE
     */
+
+
     function load_asset(zcad){
       const asset = new CADAsset();
       
@@ -530,7 +505,12 @@
       asset.getParameter("GlobalXfo").setValue(delta_xfo );
     }
 
+    // const asset = load_asset("./data/HC_SRO4.zcad")
+    // asset.on("loaded", () => {
+    //   pcb_exercise(asset)
+    // })
 
+    
     /*
       Mouse Exercise
     */
@@ -570,11 +550,6 @@
       scene.getRoot().addChild(obj_hit)
     }
 
-
-    // TODO: make the plane perpendicular to viewing plane.
-    // TODO: drag sphere within grid
-
-    
     function get_hit_plane(event){
         const dist  = event.intersectionData.dist
         const dir = event.pointerRay.dir
@@ -615,6 +590,7 @@
       const obj_hit = createGeo2(new Xfo(hit_pt), plane_geo, 'hit_marker', gmat)
       scene.getRoot().addChild(obj_hit)
     }
+    
     function create_plane_floor_discrete(event){
       const hit_pt = get_hit_pos_floor(event)
       const pt = new Vec3(
@@ -626,20 +602,57 @@
     }
 
 
+    // TODO: make the plane perpendicular to viewing plane.
+    // TODO: drag sphere within grid
+
+    function addListeners(geomItem, gridSize){
+      let dragging = false
+      let initial_xfo = null
+      let last_xfo = null
+      const gridLimit = gridSize
+
+      geomItem.getParameter("GlobalXfo").setValue(xfo);
+      geomItem.on('pointerDown', event => {
+        //console.log("dragging true")
+        initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
+        event.setCapture(geomItem)
+        dragging = true
+      })
+      // pointer events
+      geomItem.on('pointerMove', event => {
+        if(dragging){
+          const hit_pt = get_hit_pos_floor(event)
+          const hit_xfo = geomItem.getParameter("GlobalXfo").getValue();
+          hit_xfo.tr = hit_pt
+          //if(Math.abs(hit_xfo.tr.x) < Math.abs(gridLimit) && Math.abs(hit_xfo.tr.y) < Math.abs(gridLimit))
+          geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
+          last_xfo = hit_xfo
+        }
+      })
+
+      geomItem.on('pointerUp', event => {
+        if(event.getCapture() == geomItem) {
+          //console.log("dragging false")
+          dragging = false
+          event.releaseCapture()
+          console.log("new pos: ", [last_xfo.tr.x, last_xfo.tr.y,last_xfo.tr.z] )
+        }
+      })
+    }
+
     /*
       MAIN
     */
 
-
-    // const asset = load_asset("./data/HC_SRO4.zcad")
-    // asset.on("loaded", () => {
-    //   pcb_exercise(asset)
-    // })
     
+    const grid_size = 10
+    scene.setupGrid(grid_size, 100);
+
+  
     const xfo = new Xfo(new Vec3(0,0.5,-0.5))
     const sphere_obj = createGeo3(xfo, sphere_large, 'marker1000', rmat) // register event
     scene.getRoot().addChild(sphere_obj)
-
+    
     
 
 
@@ -650,25 +663,25 @@
 
 
 
-    let stored_plane = null
-    renderer.getViewport().on('pointerDown', (event)=>{      // register event
-      // const hit_pt = get_hit_pos_floor(event)
-      // sphere_obj.getParameter("GlobalXfo").setValue(new Xfo(hit_pt))
-      // create_plane_floor(event)
-      //create_plane_floor_discrete(event)
-      if (event.intersectionData) {
-        const { geomItem } = event.intersectionData;
-        // stored_plane = get_hit_plane_pointer(event)
-      }
-    })
-    renderer.getViewport().on('pointerMove', ()=>{
-      // call move code
-      // TODO: 
-    })
-    renderer.getViewport().on('pointerUp', ()=>{
-      // deregister
-      stored_plane = null
-    })
+    // let stored_plane = null
+    // renderer.getViewport().on('pointerDown', (event)=>{      // register event
+    //   // const hit_pt = get_hit_pos_floor(event)
+    //   // sphere_obj.getParameter("GlobalXfo").setValue(new Xfo(hit_pt))
+    //   // create_plane_floor(event)
+    //   //create_plane_floor_discrete(event)
+    //   if (event.intersectionData) {
+    //     const { geomItem } = event.intersectionData;
+    //     // stored_plane = get_hit_plane_pointer(event)
+    //   }
+    // })
+    // renderer.getViewport().on('pointerMove', ()=>{
+    //   // call move code
+    //   // TODO: 
+    // })
+    // renderer.getViewport().on('pointerUp', ()=>{
+    //   // deregister
+    //   stored_plane = null
+    // })
 
 
 
