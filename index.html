@@ -280,6 +280,8 @@
     const cross = new Cross(0.01)
     const origin = new Cross(0.15)
     const cylinder = new Cylinder(0.5, 8, 12)
+
+    const cylinder_large = new Cylinder(0.5, 4, 12)
     const plane_geo = new Plane(0.5, 0.5)
     const plane_large = new Plane(5, 5)
     function computeXfo(pt1, pt2, pt3){
@@ -586,6 +588,8 @@
       let dragging = false
       let initial_xfo = null
       let last_xfo = null
+    
+      const selected_axis = 'xy'
 
       geomItem.on('pointerDown', event => {
         initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
@@ -599,10 +603,20 @@
           const hit_xfo = geomItem.getParameter("GlobalXfo").getValue();
           const old_pos = hit_xfo.tr
           
-          const x = Math.min(Math.max(hit_pt.x, -gridSize/2.0), gridSize/2.0)
-          const y = Math.min(Math.max(hit_pt.y, -gridSize/2.0), gridSize/2.0)
-          const new_pos = new Vec3(x,y,old_pos.z)
-
+          let x = Math.min(Math.max(hit_pt.x, -gridSize/2.0), gridSize/2.0)
+          let y = Math.min(Math.max(hit_pt.y, -gridSize/2.0), gridSize/2.0)
+          let new_x = old_pos.x
+          let new_y = old_pos.y
+          
+          
+          if(selected_axis.includes('x')){
+            new_x = x
+          }
+          if(selected_axis.includes('y')){
+            new_y = y
+          }            
+        
+          const new_pos = new Vec3(Math.round(new_x*10)/10,Math.round(new_y*10)/10,old_pos.z)
           // const pos = MathFunctions.lerp(old_pos, new_pos, 0.5)
           hit_xfo.tr = new_pos;
           geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
@@ -671,70 +685,67 @@
       // })
     }
    
-    function addListeners_draggable2(geomItem, gridSize){
-      let dragging = false
-      let initial_xfo = null
-      let last_xfo = null
-      let hit_plane = null
-      let viz_plane = null
+    function createTracker(target){
 
-      geomItem.on('pointerDown', event => {
-        initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
-        hit_plane = get_hit_plane(event)
-        viz_plane = visualize_plane(hit_plane)
+      const geomItem = new GeomItem('Tracker', cylinder_large,  default_material)
+      geomItem.getParameter("GlobalXfo").setValue(new Xfo(new Vec3(-5,-5,5)));
+      scene.getRoot().addChild(geomItem)
+
+      target.on('globalXfoChanged', ()=>{
+        // target = target
+        // change orientation of geomItem
+
+        const target_xfo = target.getParameter("GlobalXfo").getValue()
+        const geom_xfo = geomItem.getParameter("GlobalXfo").getValue()
+
+   
+        const new_quat= new Quat()
+        const dir = target_xfo.tr.subtract(geom_xfo.tr)
+        new_quat.setFromDirectionAndUpvector(dir, new Vec3(0,0,1))
         
-        event.setCapture(geomItem)
-        dragging = true
+        const new_xfo = new Xfo(geom_xfo.tr, new_quat)
+
+        geomItem.getParameter("GlobalXfo").setValue(new_xfo)
       })
       
-      geomItem.on('pointerMove', event => {
-        if(dragging){
-          const ray = event.pointerRay
-          const dist = ray.intersectRayPlane(hit_plane)
-          const hit_pt = ray.pointAtDist(dist)
-          const geom_xfo = geomItem.getParameter("GlobalXfo").getValue();
-          const old_pos = geom_xfo.tr
-          const new_pos = hit_pt
-          geom_xfo.tr = new_pos;
-          geomItem.getParameter("GlobalXfo").setValue(geom_xfo);
-          last_xfo = geom_xfo
-        }
-      })
-
-      geomItem.on('pointerUp', event => {
-        if(event.getCapture() == geomItem) {
-          dragging = false
-          event.releaseCapture()
-          hit_plane = null
-        }
-
-      })
+      return geomItem
     }
 
+    
+
+
     const grid_size = 10
+    const mode = 0;
+
     scene.setupGrid(grid_size, 100);
 
+    let draggable_sphere = null
     /*
       MAIN
     */
-   
-    const mode = 1;
+
+    
     
     // grid drag
     if(mode == 0){
       const xfo = new Xfo(new Vec3(0,0.5,0))
-      const draggable_sphere = createDraggable(xfo, sphere_large, 'marker1000', rmat) // register event
+      draggable_sphere = createDraggable(xfo, sphere_large, 'marker1000', rmat) // register event
+  
       scene.getRoot().addChild(draggable_sphere)
       // TODO: time + frame for lerp -- best way?
     } else if(mode == 1){
       const xfo = new Xfo(new Vec3(0,0.5,0))
-      const draggable_sphere = createDraggable2(xfo, sphere_large, 'marker1000', rmat) // register event
+      draggable_sphere = createDraggable2(xfo, sphere_large, 'marker1000', rmat) // register event
       scene.getRoot().addChild(draggable_sphere)
+     
     }
 
+    // EXTRA: cylinder that points toward sphere
+    createTracker(draggable_sphere)
 
     // TODO: adapt to previous exercises
-
+    // Q: lerp? time?
+    // 
 
     /*
       UI
@@ -753,32 +764,13 @@
         highlightedItem = null;
       });
 
-      // let selected_obj = null
-      // let selected_transform = null
-      // renderer.getViewport().on("pointerDown", (event) => {
-      //   if (event.intersectionData) {
-      //     const { geomItem } = event.intersectionData;
-      //     selected_obj = geomItem
 
-      //     selected_transform = selected_obj.__globalXfoParam.getValue().tr
-      //     console.log("selected: ", selected_obj.__name)
-      //     console.log("selected transform: ", selected_transform)
-      //     // console.log(geomItem.getPath());
-
-      //     selected_transform.addInPlace(new Vec3(0,1,0)) // works
-          
-      //   }
-      // });
-      // renderer.getViewport().on("pointerMove", (event) => {
-      //     // need frustrums viewing plane... 
-      // });
-      // renderer.getViewport().on("pointerUp", (event) => {
-      //   selected_obj = null
-      //   let selected_transform = null
-      // });
     /*
       Exercise end
     */
+
+
+
       // Setup FPS Display
       const fpsElement = document.getElementById("fps");
       fpsElement.renderer = renderer;
