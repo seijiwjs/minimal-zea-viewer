@@ -269,19 +269,8 @@
     
 
 
-    //TODO: use grid plane as dragging surface
-    //TODO: lerp
-    function createGeo3(xfo, geom, geomName, mat){
-      let m = default_material
-      if(mat){
-        m = mat
-      }
-      const geomItem = new GeomItem(geomName, geom,  m)
-      addListeners(geomItem)
-      return geomItem
-    }
     /*
-      EXERCISE
+      EXERCISE #1
     */
 
     const sphere = new Sphere(0.05, 16, 10) // create one sphere and share it -- reuse geo
@@ -602,6 +591,17 @@
     }
 
 
+    //TODO: use grid plane as dragging surface
+    //TODO: lerp
+    function createGeo3(xfo, geom, geomName, mat){
+      let m = default_material
+      if(mat){
+        m = mat
+      }
+      const geomItem = new GeomItem(geomName, geom,  m)
+      addListeners(geomItem, grid_size)
+      return geomItem
+    }
     // TODO: make the plane perpendicular to viewing plane.
     // TODO: drag sphere within grid
 
@@ -609,11 +609,9 @@
       let dragging = false
       let initial_xfo = null
       let last_xfo = null
-      const gridLimit = gridSize
 
       geomItem.getParameter("GlobalXfo").setValue(xfo);
       geomItem.on('pointerDown', event => {
-        //console.log("dragging true")
         initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
         event.setCapture(geomItem)
         dragging = true
@@ -623,8 +621,14 @@
         if(dragging){
           const hit_pt = get_hit_pos_floor(event)
           const hit_xfo = geomItem.getParameter("GlobalXfo").getValue();
-          hit_xfo.tr = hit_pt
-          //if(Math.abs(hit_xfo.tr.x) < Math.abs(gridLimit) && Math.abs(hit_xfo.tr.y) < Math.abs(gridLimit))
+         
+          //buggy because hitpoint can be outside of grid while sphere is not at max
+          if(Math.abs(hit_pt.x) < Math.abs(gridSize)/2.0){
+            hit_xfo.tr.x = hit_pt.x
+          }
+          if( Math.abs(hit_pt.y) < Math.abs(gridSize)/2.0){
+            hit_xfo.tr.y = hit_pt.y
+          }
           geomItem.getParameter("GlobalXfo").setValue(hit_xfo);
           last_xfo = hit_xfo
         }
@@ -632,7 +636,6 @@
 
       geomItem.on('pointerUp', event => {
         if(event.getCapture() == geomItem) {
-          //console.log("dragging false")
           dragging = false
           event.releaseCapture()
           console.log("new pos: ", [last_xfo.tr.x, last_xfo.tr.y,last_xfo.tr.z] )
@@ -649,7 +652,7 @@
     scene.setupGrid(grid_size, 100);
 
   
-    const xfo = new Xfo(new Vec3(0,0.5,-0.5))
+    const xfo = new Xfo(new Vec3(0,0.5,0))
     const sphere_obj = createGeo3(xfo, sphere_large, 'marker1000', rmat) // register event
     scene.getRoot().addChild(sphere_obj)
     
