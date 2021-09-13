@@ -178,11 +178,11 @@
     const default_material = new Material('surfaces', 'SimpleSurfaceShader')
     default_material.getParameter('BaseColor').setValue(new Color(182 / 255, 182 / 255, 182 / 255))
     const rmat = new Material('surfaces', 'SimpleSurfaceShader')
-    rmat.getParameter('BaseColor').setValue(new Color(182 / 255, 10 / 255, 10 / 255))
+    rmat.getParameter('BaseColor').setValue(new Color(200 / 255, 50/ 255, 50/ 255))
     const bmat = new Material('surfaces', 'SimpleSurfaceShader')
-    bmat.getParameter('BaseColor').setValue(new Color(10/ 255, 182 / 255, 10/ 255))
+    bmat.getParameter('BaseColor').setValue(new Color(50/ 255, 50/ 255, 200 / 255))
     const gmat = new Material('surfaces', 'SimpleSurfaceShader')
-    gmat.getParameter('BaseColor').setValue(new Color(10/ 255, 10 / 255, 182 / 255))
+    gmat.getParameter('BaseColor').setValue(new Color(50/ 255, 200 / 255, 50 / 255))
 
     // transparent for debugging
     const transparent_mat = new Material('surfaces', 'StandardSurfaceShader')
@@ -648,7 +648,43 @@
       addListeners_draggable2(geomItem, grid_size)
       return geomItem
     }
+    function addListeners_draggable2(geomItem, gridSize){
+      let dragging = false
+      let initial_xfo = null
+      let last_xfo = null
+      let hit_plane = null
 
+      geomItem.on('pointerDown', event => {
+        initial_xfo = geomItem.getParameter("GlobalXfo").getValue()
+        hit_plane = get_hit_plane(event)
+        visualize_plane(hit_plane)
+        event.setCapture(geomItem)
+        dragging = true
+      })
+      
+      geomItem.on('pointerMove', event => {
+        if(dragging){
+          const ray = event.pointerRay
+          const dist = ray.intersectRayPlane(hit_plane)
+          const hit_pt = ray.pointAtDist(dist)
+          const geom_xfo = geomItem.getParameter("GlobalXfo").getValue();
+          const old_pos = geom_xfo.tr
+          const new_pos = hit_pt
+          geom_xfo.tr = new_pos;
+          geomItem.getParameter("GlobalXfo").setValue(geom_xfo);
+          last_xfo = geom_xfo
+        }
+      })
+
+      geomItem.on('pointerUp', event => {
+        if(event.getCapture() == geomItem) {
+          dragging = false
+          event.releaseCapture()
+          hit_plane = null
+          scene.getRoot().removeChild(hit_plane)
+        }
+      })
+    }
     function get_hit_plane(event){
         const dist  = event.intersectionData.dist
         const dir = event.pointerRay.dir
@@ -711,11 +747,20 @@
       return geomItem
     }
 
-    
+    function createGizmoHandles(target) {
+
+      const target_xfo = target.getParameter("GlobalXfo").getValue()
+      
+      target.on('pointerDown', ()=>{
+        // show gizmos
+      })
+
+    }
 
 
     const grid_size = 10
-    const mode = 0;
+    const mode =1
+    
 
     scene.setupGrid(grid_size, 100);
 
@@ -729,7 +774,7 @@
     // grid drag
     if(mode == 0){
       const xfo = new Xfo(new Vec3(0,0.5,0))
-      draggable_sphere = createDraggable(xfo, sphere_large, 'marker1000', rmat) // register event
+      draggable_sphere = createDraggable(xfo, sphere_large, 'marker1000', gmat) // register event
   
       scene.getRoot().addChild(draggable_sphere)
       // TODO: time + frame for lerp -- best way?
@@ -743,10 +788,15 @@
     // EXTRA: cylinder that points toward sphere
     createTracker(draggable_sphere)
 
+    //EXTRA: gizmo handles
+    // geometry with event listeners 
+
     // TODO: adapt to previous exercises
     // Q: lerp? time?
     // 
 
+    //TODO: rotate around pivot function
+    
     /*
       UI
     */
